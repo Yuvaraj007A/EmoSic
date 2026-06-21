@@ -46,7 +46,10 @@ try:
     client = pymongo.MongoClient(app.config['MONGO_URI'], serverSelectionTimeoutMS=5000)
     # Check connection
     client.server_info()
-    db = client.get_database()
+    try:
+        db = client.get_database()
+    except Exception:
+        db = client['emotion_music_db']
     print("[INFO] Connected to MongoDB Atlas/Local successfully.")
 except Exception as e:
     print(f"[CRITICAL] Failed to connect to MongoDB: {e}")
