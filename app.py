@@ -366,7 +366,10 @@ def forgot_password():
             if mail_sent:
                 flash("An OTP verification code has been sent to your email. Enter it below.", "success")
             else:
-                flash("An OTP verification code has been printed to the system server logs/console. Enter it below.", "info")
+                if app.debug:
+                    flash("An OTP verification code has been printed to the system server logs/console. Enter it below.", "info")
+                else:
+                    flash("Failed to send OTP email. Please verify that your email is registered or try again later.", "error")
                 
             return render_template('forgot_password.html', step='verify_otp')
             
