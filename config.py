@@ -29,18 +29,7 @@ class Config:
     ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     ALLOWED_AUDIO_EXTENSIONS = {'mp3', 'wav', 'ogg'}
 
-    # Email Configuration
-    _mail_server = os.environ.get('MAIL_SERVER')
-    MAIL_SERVER = _mail_server.strip() if _mail_server else None
-    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
-    
-    _mail_user = os.environ.get('MAIL_USERNAME')
-    MAIL_USERNAME = _mail_user.strip() if _mail_user else None
-    
-    _mail_pass = os.environ.get('MAIL_PASSWORD')
-    MAIL_PASSWORD = _mail_pass.strip() if _mail_pass else None
-    
+    # Email Configuration (Resend API)
     _mail_sender = os.environ.get('MAIL_DEFAULT_SENDER')
     MAIL_DEFAULT_SENDER = _mail_sender.strip() if _mail_sender else 'no-reply@emosic.com'
     
