@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - EmoSic{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-gauge"></i> Admin Home
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_users') }}" class="sidebar-link">
+                    <i class="fa-solid fa-users"></i> Manage Users
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_songs') }}" class="sidebar-link">
+                    <i class="fa-solid fa-music"></i> Manage Songs
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_detections') }}" class="sidebar-link">
+                    <i class="fa-solid fa-list-check"></i> System Logs
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Admin Dashboard Panel -->
+    <section class="dashboard-main" style="display: flex; flex-direction: column; gap: 2rem;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">Administration Portal</h1>
+            <p style="color: var(--text-secondary);">Manage users, songs database, and review scanning history statistics</p>
+        </div>
+
+        <!-- Global Metrics -->
+        <div class="metrics-row" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            <div class="glass-container metric-card" style="padding: 1.5rem;">
+                <div class="metric-icon" style="color: var(--secondary-glow); background: rgba(0, 240, 255, 0.1);"><i class="fa-solid fa-users"></i></div>
+                <div>
+                    <span class="metric-value">{{ total_users }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0;">Total Users</p>
+                </div>
+            </div>
+            
+            <div class="glass-container metric-card" style="padding: 1.5rem;">
+                <div class="metric-icon" style="color: var(--primary-glow); background: rgba(138, 43, 226, 0.1);"><i class="fa-solid fa-sliders"></i></div>
+                <div>
+                    <span class="metric-value">{{ total_songs }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0;">Total Songs</p>
+                </div>
+            </div>
+
+            <div class="glass-container metric-card" style="padding: 1.5rem;">
+                <div class="metric-icon" style="color: var(--success); background: rgba(0, 230, 118, 0.1);"><i class="fa-solid fa-circle-nodes"></i></div>
+                <div>
+                    <span class="metric-value">{{ total_detections }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0;">Scans Performed</p>
+                </div>
+            </div>
+
+            <div class="glass-container metric-card" style="padding: 1.5rem;">
+                <div class="metric-icon" style="color: var(--accent-glow); background: rgba(255, 0, 127, 0.1);"><i class="fa-solid fa-face-laugh-beam"></i></div>
+                <div>
+                    <span class="metric-value" style="font-size: 1.5rem; text-transform: uppercase;">{{ most_detected }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0;">Most Detected</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem;">
+            <!-- User growth line chart -->
+            <div class="glass-container">
+                <h3 style="font-weight: 700;"><i class="fa-solid fa-chart-line text-gradient"></i> Platform User Growth</h3>
+                <p style="color: var(--text-secondary); font-size: 0.8rem;">Cumulative user count over the past 5 months</p>
+                <div style="position: relative; height: 260px; margin-top: 1rem;">
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Operations cards -->
+            <div class="glass-container" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3 style="font-weight: 700; margin-bottom: 1.2rem;"><i class="fa-solid fa-shield-halved text-gradient"></i> Quick Access</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                        <a href="{{ url_for('admin_users') }}" class="btn-secondary" style="justify-content: flex-start; padding: 0.9rem 1.5rem;">
+                            <i class="fa-solid fa-user-gear"></i> Manage User Accounts
+                        </a>
+                        <a href="{{ url_for('admin_songs') }}" class="btn-secondary" style="justify-content: flex-start; padding: 0.9rem 1.5rem;">
+                            <i class="fa-solid fa-music"></i> Manage Tracks Library
+                        </a>
+                        <a href="{{ url_for('admin_detections') }}" class="btn-secondary" style="justify-content: flex-start; padding: 0.9rem 1.5rem;">
+                            <i class="fa-solid fa-database"></i> Review Expression Logs
+                        </a>
+                    </div>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); border-top: 1px solid var(--border-glass); padding-top: 1rem; margin-top: 1.5rem; text-align: center;">
+                    EmoSic System Dashboard v1.0.0
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const labels = {{ growth_labels | tojson }};
+    const growthData = {{ user_growth | tojson }};
+
+    const ctx = document.getElementById('userGrowthChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cumulative Users',
+                data: growthData,
+                borderColor: '#00f0ff',
+                backgroundColor: 'rgba(0, 240, 255, 0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#8a2be2',
+                pointBorderColor: '#00f0ff',
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#8f96b3', precision: 0 }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#8f96b3' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

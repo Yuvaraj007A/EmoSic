@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Emotion Detector - EmoSic{% endblock %}
+
+{% block styles %}
+<style>
+    /* Absolute face bounding box overlay */
+    #face-bounding-box {
+        position: absolute;
+        border: 3px solid var(--secondary-glow);
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+        border-radius: 8px;
+        z-index: 15;
+        display: none;
+        pointer-events: none;
+        transition: all 0.15s ease-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper" style="padding-bottom: 8rem;">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('emotion_page') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-camera"></i> Detect Emotion
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('history') }}" class="sidebar-link">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Scan History
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('analytics') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-pie"></i> Analytics
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('profile') }}" class="sidebar-link">
+                    <i class="fa-solid fa-user-gear"></i> Settings
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Scanner Console -->
+    <section class="dashboard-main" style="display: flex; flex-direction: column; gap: 2rem;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">Real-Time Emotion Scanner</h1>
+            <p style="color: var(--text-secondary);">Position your face in front of your camera and trigger a scan to curate matching soundtracks</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2rem;">
+            <!-- Webcam Frame Column -->
+            <div class="glass-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="webcam-container">
+                    <!-- Video tag (mirrored visually) -->
+                    <video id="webcam-video" autoplay playsinline muted style="transform: scaleX(-1);"></video>
+                    
+                    <!-- Bounding box overlay -->
+                    <div id="face-bounding-box"></div>
+                    
+                    <!-- Scan Loader overlay -->
+                    <div class="scan-overlay" id="scan-overlay-loader">
+                        <i class="fa-solid fa-spinner fa-spin text-glow" style="font-size: 3.5rem; color: var(--secondary-glow); margin-bottom: 1rem;"></i>
+                        <h4 style="font-weight: 600;">Analyzing Face Expressions...</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.2rem;">Keras mini-XCEPTION model processing</p>
+                    </div>
+                </div>
+                
+                <!-- Controls Row -->
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button id="btn-start-cam" class="btn-primary" onclick="startCamera()">
+                        <i class="fa-solid fa-video"></i> Start Camera
+                    </button>
+                    <button id="btn-stop-cam" class="btn-danger" onclick="stopCamera()" style="display: none;">
+                        <i class="fa-solid fa-video-slash"></i> Stop Camera
+                    </button>
+                    <button id="btn-capture-mood" class="btn-primary" onclick="captureAndDetect()" disabled>
+                        <i class="fa-solid fa-face-viewfinder"></i> Capture Mood
+                    </button>
+                    <button id="btn-live-toggle" class="btn-secondary" onclick="toggleLiveScan()" disabled>
+                        <i class="fa-solid fa-play"></i> Continuous Mode
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats & Probability Bars Column -->
+            <div class="glass-container" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h3 style="font-weight: 700; margin-bottom: 1.5rem;"><i class="fa-solid fa-chart-simple text-gradient"></i> Scan Results</h3>
+                    
+                    <!-- Primary Emotion Readout -->
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 12px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.8rem;">
+                        <div>
+                            <p style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; font-weight: 600;">Detected Emotion</p>
+                            <h2 id="predicted-emotion-label" class="text-gradient text-glow" style="font-weight: 800; font-size: 2rem;">NEUTRAL</h2>
+                        </div>
+                        <div style="text-align: right;">
+                            <p style="color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; font-weight: 600;">Confidence</p>
+                            <h3 id="confidence-score-label" style="font-weight: 700; font-size: 1.5rem; color: var(--secondary-glow);">00.0%</h3>
+                        </div>
+                    </div>
+
+                    <!-- Emotion Probability Progress Bars -->
+                    <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                        {% for em in ["happy", "sad", "neutral", "angry", "disgust", "scared", "surprised"] %}
+                        <div class="probability-bar-wrapper">
+                            <div class="probability-bar-label">
+                                <span style="text-transform: capitalize; color: var(--text-secondary); font-size: 0.9rem;">{{ em }}</span>
+                                <span id="prob-percent-{{ em }}" style="font-weight: 600; font-size: 0.9rem;">0.0%</span>
+                            </div>
+                            <div class="probability-bar-outer">
+                                <div class="probability-bar-inner" id="prob-bar-{{ em }}"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div style="color: var(--text-secondary); font-size: 0.8rem; border-top: 1px solid var(--border-glass); padding-top: 1rem; margin-top: 1rem; display: flex; justify-content: space-between;">
+                    <span>Last Scan:</span>
+                    <span id="scan-timestamp-label">N/A</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommended Songs Shelf -->
+        <div>
+            <h2 style="font-weight: 800; font-size: 1.8rem; margin-top: 1rem;"><i class="fa-solid fa-compact-disc text-gradient"></i> Dynamic Recommendations</h2>
+            <p style="color: var(--text-secondary);">Melodies matching your predicted expression</p>
+            
+            <div class="music-grid" id="recommended-songs-container">
+                <!-- Initial State Placeholder -->
+                <div style="grid-column: span 3; text-align: center; padding: 5rem; color: var(--text-secondary);">
+                    <i class="fa-solid fa-face-smile" style="font-size: 4rem; color: var(--border-glass); margin-bottom: 1.5rem; display: block; animation: scanMotion 3s infinite ease-in-out;"></i>
+                    <p style="font-size: 1.1rem; font-weight: 500;">AI Recommendation Portal Ready</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.3rem;">Activate your webcam and scan to load customized playlists</p>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/webcam.js') }}"></script>
+{% endblock %}

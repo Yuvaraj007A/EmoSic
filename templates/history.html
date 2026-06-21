@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Scan History - EmoSic{% endblock %}
+
+{% block styles %}
+<style>
+    .filter-btn-group {
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-btn {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-glass);
+        color: var(--text-secondary);
+        padding: 0.6rem 1.2rem;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 500;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+    
+    .filter-btn:hover, .filter-btn.active {
+        background: linear-gradient(135deg, rgba(138, 43, 226, 0.2) 0%, rgba(0, 240, 255, 0.1) 100%);
+        color: var(--text-primary);
+        border-color: var(--secondary-glow);
+    }
+    
+    .crop-thumbnail {
+        width: 45px;
+        height: 45px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--border-glass);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper" style="padding-bottom: 8rem;">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('emotion_page') }}" class="sidebar-link">
+                    <i class="fa-solid fa-camera"></i> Detect Emotion
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('history') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Scan History
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('analytics') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-pie"></i> Analytics
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('profile') }}" class="sidebar-link">
+                    <i class="fa-solid fa-user-gear"></i> Settings
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main History Viewer -->
+    <section class="dashboard-main">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">Scan Logs</h1>
+                <p style="color: var(--text-secondary);">Browse, filter, and export your previous mood scans</p>
+            </div>
+            
+            <!-- Export Buttons -->
+            <div style="display: flex; gap: 0.8rem;">
+                <a href="{{ url_for('export_history', export_format='csv') }}" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">
+                    <i class="fa-solid fa-file-csv"></i> Export CSV
+                </a>
+                <a href="{{ url_for('export_history', export_format='pdf') }}" target="_blank" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">
+                    <i class="fa-solid fa-file-pdf"></i> Export PDF
+                </a>
+            </div>
+        </div>
+
+        <!-- Filters Row -->
+        <div class="glass-container" style="padding: 1.5rem; margin-bottom: 2rem;">
+            <div class="filter-btn-group">
+                <a href="{{ url_for('history', filter='all') }}" class="filter-btn {% if active_filter == 'all' or active_filter == '' %}active{% endif %}">All Scans</a>
+                <a href="{{ url_for('history', filter='today') }}" class="filter-btn {% if active_filter == 'today' %}active{% endif %}">Today</a>
+                <a href="{{ url_for('history', filter='week') }}" class="filter-btn {% if active_filter == 'week' %}active{% endif %}">This Week</a>
+                <a href="{{ url_for('history', filter='month') }}" class="filter-btn {% if active_filter == 'month' %}active{% endif %}">This Month</a>
+                <button onclick="toggleCustomFilter()" class="filter-btn {% if active_filter == 'custom' %}active{% endif %}">Custom Range</button>
+            </div>
+            
+            <!-- Custom Datepicker Selector -->
+            <div id="custom-range-picker" style="display: {% if active_filter == 'custom' %}flex{% else %}none{% endif %}; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                <form action="{{ url_for('history') }}" method="GET" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; width: 100%;">
+                    <input type="hidden" name="filter" value="custom">
+                    <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                        <label for="start_date" class="form-label" style="font-size: 0.8rem;">Start Date</label>
+                        <input type="date" id="start_date" name="start_date" class="form-control" style="padding: 0.5rem 1rem;" value="{{ request.args.get('start_date', '') }}" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                        <label for="end_date" class="form-label" style="font-size: 0.8rem;">End Date</label>
+                        <input type="date" id="end_date" name="end_date" class="form-control" style="padding: 0.5rem 1rem;" value="{{ request.args.get('end_date', '') }}" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding: 0.6rem 1.5rem;"><i class="fa-solid fa-filter"></i> Apply Filter</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Logs Table -->
+        <div class="glass-container" style="padding: 0;">
+            {% if detections|length == 0 %}
+            <div style="text-align: center; padding: 5rem; color: var(--text-secondary);">
+                <i class="fa-solid fa-clock-rotate-left" style="font-size: 4rem; color: var(--border-glass); margin-bottom: 1.5rem; display: block;"></i>
+                <p style="font-size: 1.1rem; font-weight: 500;">No scans logged</p>
+                <p style="font-size: 0.9rem; margin-top: 0.3rem;">Log entries appear once you capture emotional scans in the camera interface.</p>
+            </div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Crop</th>
+                            <th>Timestamp (UTC)</th>
+                            <th>Emotion</th>
+                            <th>Confidence</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in detections %}
+                        <tr>
+                            <td>
+                                <img class="crop-thumbnail" src="{{ d.image_path }}" alt="Face Crop" onerror="this.src='/static/images/default_avatar.png'">
+                            </td>
+                            <td style="font-weight: 500;">
+                                {{ d.timestamp.strftime('%b %d, %Y %H:%M') if d.timestamp else 'N/A' }}
+                            </td>
+                            <td>
+                                <span class="badge badge-user" style="text-transform: capitalize; padding: 0.4rem 0.9rem;">
+                                    {{ d.emotion }}
+                                </span>
+                            </td>
+                            <td style="font-weight: 600; color: var(--secondary-glow);">
+                                {{ (d.confidence * 100) | round(1) }}%
+                            </td>
+                            <td style="text-align: right;">
+                                <form action="{{ url_for('delete_detection', detection_id=d._id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this scan record?');">
+                                    <button type="submit" class="action-btn" style="color: var(--danger);" title="Delete Record">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleCustomFilter() {
+        const picker = document.getElementById('custom-range-picker');
+        if (picker.style.display === 'none') {
+            picker.style.display = 'flex';
+        } else {
+            picker.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

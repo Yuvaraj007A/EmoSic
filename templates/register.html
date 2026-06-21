@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Register - EmoSic{% endblock %}
+
+{% block styles %}
+<style>
+    .strength-indicator {
+        margin-top: 0.5rem;
+    }
+    .check-item {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-bottom: 0.2rem;
+    }
+    .check-item.valid {
+        color: var(--success);
+    }
+    .check-item.valid i {
+        color: var(--success);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 80px); padding: 2rem;">
+    <div class="glass-container" style="width: 100%; max-width: 500px;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <i class="fa-solid fa-user-plus text-gradient" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h2 class="text-gradient" style="font-weight: 700;">Create Account</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.3rem;">Register to unlock AI emotion recommendations</p>
+        </div>
+
+        <form action="{{ url_for('register') }}" method="POST" id="register-form">
+            <div class="form-group">
+                <label for="name" class="form-label">Full Name</label>
+                <div style="position: relative;">
+                    <i class="fa-solid fa-signature text-secondary" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="text" id="name" name="name" class="form-control" placeholder="John Doe" style="padding-left: 2.8rem;" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="username" class="form-label">Username</label>
+                <div style="position: relative;">
+                    <i class="fa-solid fa-at text-secondary" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="johndoe" style="padding-left: 2.8rem;" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">Email Address</label>
+                <div style="position: relative;">
+                    <i class="fa-solid fa-envelope text-secondary" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="john@example.com" style="padding-left: 2.8rem;" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <div style="position: relative;">
+                    <i class="fa-solid fa-lock text-secondary" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" style="padding-left: 2.8rem;" required>
+                </div>
+                
+                <!-- Password Strength Meter -->
+                <div class="password-strength-wrapper">
+                    <div class="strength-bar-outer">
+                        <div class="strength-bar-inner" id="strength-bar"></div>
+                    </div>
+                    <span class="strength-label" id="strength-label">Password Strength: Empty</span>
+                </div>
+                <div style="margin-top: 0.8rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.2rem 1rem;">
+                    <div class="check-item" id="chk-len"><i class="fa-solid fa-circle-xmark"></i> Min 8 characters</div>
+                    <div class="check-item" id="chk-upper"><i class="fa-solid fa-circle-xmark"></i> 1 Uppercase letter</div>
+                    <div class="check-item" id="chk-lower"><i class="fa-solid fa-circle-xmark"></i> 1 Lowercase letter</div>
+                    <div class="check-item" id="chk-num"><i class="fa-solid fa-circle-xmark"></i> 1 Digit</div>
+                    <div class="check-item" id="chk-spec" style="grid-column: span 2;"><i class="fa-solid fa-circle-xmark"></i> 1 Special character (!@#$%^&*)</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">Confirm Password</label>
+                <div style="position: relative;">
+                    <i class="fa-solid fa-lock text-secondary" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="••••••••" style="padding-left: 2.8rem;" required>
+                </div>
+                <span class="strength-label" id="match-label" style="display: none; color: var(--danger);">Passwords do not match</span>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1.5rem;">
+                <i class="fa-solid fa-user-plus"></i> Register
+            </button>
+        </form>
+
+        <p style="text-align: center; color: var(--text-secondary); margin-top: 2rem; font-size: 0.9rem;">
+            Already have an account? <a href="{{ url_for('login') }}" style="color: var(--secondary-glow); text-decoration: none; font-weight: 600;">Login Here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirm_password');
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthLabel = document.getElementById('strength-label');
+    const matchLabel = document.getElementById('match-label');
+    
+    // Check points
+    const chkLen = document.getElementById('chk-len');
+    const chkUpper = document.getElementById('chk-upper');
+    const chkLower = document.getElementById('chk-lower');
+    const chkNum = document.getElementById('chk-num');
+    const chkSpec = document.getElementById('chk-spec');
+
+    passwordInput.addEventListener('input', checkStrength);
+    confirmInput.addEventListener('input', checkMatch);
+    
+    function checkStrength() {
+        const val = passwordInput.value;
+        let score = 0;
+        
+        // 1. Length
+        const hasLen = val.length >= 8;
+        updateCheckUI(chkLen, hasLen);
+        if (hasLen) score++;
+        
+        // 2. Upper case
+        const hasUpper = /[A-Z]/.test(val);
+        updateCheckUI(chkUpper, hasUpper);
+        if (hasUpper) score++;
+        
+        // 3. Lower case
+        const hasLower = /[a-z]/.test(val);
+        updateCheckUI(chkLower, hasLower);
+        if (hasLower) score++;
+        
+        // 4. Number
+        const hasNum = /\d/.test(val);
+        updateCheckUI(chkNum, hasNum);
+        if (hasNum) score++;
+        
+        // 5. Special char
+        const hasSpec = /[!@#$%^&*(),.?":{}|<>]/.test(val);
+        updateCheckUI(chkSpec, hasSpec);
+        if (hasSpec) score++;
+        
+        // Calculate progress strength width & colors
+        let width = 0;
+        let color = '';
+        let text = 'Empty';
+        
+        if (val.length > 0) {
+            width = (score / 5) * 100;
+            if (score <= 2) {
+                color = 'var(--danger)';
+                text = 'Weak';
+            } else if (score <= 4) {
+                color = 'var(--warning)';
+                text = 'Medium';
+            } else {
+                color = 'var(--success)';
+                text = 'Strong';
+            }
+        }
+        
+        strengthBar.style.width = `${width}%`;
+        strengthBar.style.backgroundColor = color;
+        strengthLabel.innerText = `Password Strength: ${text}`;
+        
+        checkMatch();
+    }
+    
+    function updateCheckUI(element, isValid) {
+        const icon = element.querySelector('i');
+        if (isValid) {
+            element.classList.add('valid');
+            icon.className = 'fa-solid fa-circle-check';
+        } else {
+            element.classList.remove('valid');
+            icon.className = 'fa-solid fa-circle-xmark';
+        }
+    }
+    
+    function checkMatch() {
+        if (confirmInput.value === '') {
+            matchLabel.style.display = 'none';
+            return;
+        }
+        
+        if (passwordInput.value === confirmInput.value) {
+            matchLabel.style.display = 'block';
+            matchLabel.style.color = 'var(--success)';
+            matchLabel.innerText = 'Passwords match';
+        } else {
+            matchLabel.style.display = 'block';
+            matchLabel.style.color = 'var(--danger)';
+            matchLabel.innerText = 'Passwords do not match';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Login - EmoSic{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 80px); padding: 2rem;">
+    <div class="glass-container" style="width: 100%; max-width: 450px;">
+        <div style="text-align: center; margin-bottom: 2.5rem;">
+            <i class="fa-solid fa-user-shield text-gradient" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h2 class="text-gradient" style="font-weight: 700;">Account Login</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.3rem;">Access your emotion dashboard</p>
+        </div>
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="form-group">
+                <label for="email_username" class="form-label">Username or Email</label>
+                <div style="position: relative;">
+                    <i class="fa-solid fa-envelope text-secondary" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="text" id="email_username" name="email_username" class="form-control" placeholder="Enter username or email" style="padding-left: 2.8rem;" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <label for="password" class="form-label" style="margin-bottom: 0;">Password</label>
+                    <a href="{{ url_for('forgot_password') }}" style="color: var(--secondary-glow); font-size: 0.85rem; text-decoration: none;">Forgot Password?</a>
+                </div>
+                <div style="position: relative;">
+                    <i class="fa-solid fa-lock text-secondary" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" style="padding-left: 2.8rem;" required>
+                </div>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+                <input type="checkbox" id="remember" name="remember" style="accent-color: var(--secondary-glow); width: 16px; height: 16px; cursor: pointer;">
+                <label for="remember" style="color: var(--text-secondary); font-size: 0.9rem; cursor: pointer; user-select: none;">Remember me for 30 days</label>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1.5rem;">
+                <i class="fa-solid fa-right-to-bracket"></i> Login
+            </button>
+        </form>
+
+        <p style="text-align: center; color: var(--text-secondary); margin-top: 2rem; font-size: 0.9rem;">
+            Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--secondary-glow); text-decoration: none; font-weight: 600;">Register Here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

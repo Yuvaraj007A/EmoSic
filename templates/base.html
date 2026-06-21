@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Emotion-Based Music Recommendations{% endblock %}</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- ChartJS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Flask Flash Messages Data Container -->
+    <div id="flash-messages" style="display: none;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <span class="flash-message" data-category="{{ category }}">{{ message }}</span>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <i class="fa-solid fa-wand-magic-sparkles text-glow"></i>
+            <span>EmoSic</span>
+        </a>
+        <ul class="nav-links">
+            {% if session.get('user_id') %}
+                {% if session.get('role') == 'admin' %}
+                    <li><a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.path == url_for('admin_dashboard') %}active{% endif %}">Admin Home</a></li>
+                    <li><a href="{{ url_for('admin_users') }}" class="nav-link {% if request.path == url_for('admin_users') %}active{% endif %}">Manage Users</a></li>
+                    <li><a href="{{ url_for('admin_songs') }}" class="nav-link {% if request.path == url_for('admin_songs') %}active{% endif %}">Manage Songs</a></li>
+                    <li><a href="{{ url_for('admin_detections') }}" class="nav-link {% if request.path == url_for('admin_detections') %}active{% endif %}">Logs</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('profile') }}" class="nav-link {% if request.path == url_for('profile') %}active{% endif %}">Profile</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('logout') }}" class="btn-secondary" style="padding: 0.5rem 1.5rem;"><i class="fa-solid fa-sign-out-alt"></i> Logout</a></li>
+            {% else %}
+                <li><a href="{{ url_for('login') }}" class="nav-link {% if request.path == url_for('login') %}active{% endif %}">Login</a></li>
+                <li><a href="{{ url_for('register') }}" class="btn-primary" style="padding: 0.5rem 1.5rem;">Get Started</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Music Player (Only loaded if user is logged in) -->
+    {% if session.get('user_id') %}
+    <div class="global-player" id="global-player" style="display: none;">
+        <div class="player-info">
+            <img id="player-song-cover" class="player-cover" src="{{ url_for('static', filename='images/default_avatar.png') }}" alt="Cover">
+            <div>
+                <h4 id="player-song-title" class="song-title" style="font-size: 0.95rem; max-width: 170px;">Song Title</h4>
+                <p id="player-song-artist" class="song-artist" style="font-size: 0.8rem; margin-bottom: 0;">Artist</p>
+            </div>
+        </div>
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="player-btn" onclick="prevSong()"><i class="fa-solid fa-backward-step"></i></button>
+                <button class="player-btn play-pause" id="player-play-btn" onclick="togglePlay()"><i class="fa-solid fa-circle-play"></i></button>
+                <button class="player-btn" onclick="nextSong()"><i class="fa-solid fa-forward-step"></i></button>
+            </div>
+            <div class="progress-bar-container">
+                <span class="time-stamp" id="player-current-time">00:00</span>
+                <input type="range" class="progress-bar-slider" id="player-progress" value="0" max="100" oninput="seekAudio()">
+                <span class="time-stamp" id="player-duration">00:00</span>
+            </div>
+        </div>
+        <div class="player-volume" style="width: 250px; display: flex; justify-content: flex-end; align-items: center; gap: 0.8rem;">
+            <i class="fa-solid fa-volume-high text-secondary"></i>
+            <input type="range" class="progress-bar-slider" id="player-volume-control" style="width: 80px;" value="80" max="100" oninput="setVolume()">
+            <button class="action-btn" id="player-fav-btn" onclick="toggleFavorite()"><i class="fa-regular fa-heart"></i></button>
+        </div>
+    </div>
+    <audio id="global-audio-element" style="display: none;"></audio>
+    {% endif %}
+
+    <!-- Core Scripting -->
+    <script>
+        // Notification Handler
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            let icon = 'fa-circle-info';
+            if (type === 'success') icon = 'fa-circle-check';
+            if (type === 'error') icon = 'fa-circle-xmark';
+            
+            toast.innerHTML = `
+                <i class="fa-solid ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                toast.style.transition = 'transform 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Render Flask flash messages as toasts
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashContainer = document.getElementById('flash-messages');
+            if (flashContainer) {
+                const messageElements = flashContainer.getElementsByClassName('flash-message');
+                Array.from(messageElements).forEach(el => {
+                    let category = el.getAttribute('data-category') || 'info';
+                    if (category === 'message') category = 'info';
+                    const messageText = el.textContent;
+                    showToast(messageText, category);
+                });
+                flashContainer.remove();
+            }
+        });
+    </script>
+    
+    <!-- Custom JS files -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

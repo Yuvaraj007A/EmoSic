@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - EmoSic{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <div class="sidebar-profile">
+            <img class="sidebar-avatar" src="{{ url_for('static', filename='uploads/' + profile_picture) if profile_picture != 'default_avatar.png' else url_for('static', filename='images/default_avatar.png') }}" alt="Profile Avatar">
+            <h3 style="font-weight: 700; font-size: 1.2rem;">{{ user.name }}</h3>
+            <p style="color: var(--text-secondary); font-size: 0.85rem;">@{{ user.username }}</p>
+            {% if user.last_login %}
+                <p style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.5rem;">
+                    Last Login: <br> {{ user.last_login.strftime('%b %d, %Y %H:%M') }} UTC
+                </p>
+            {% endif %}
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('emotion_page') }}" class="sidebar-link">
+                    <i class="fa-solid fa-camera"></i> Detect Emotion
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('history') }}" class="sidebar-link">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Scan History
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('analytics') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-pie"></i> Analytics
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('profile') }}" class="sidebar-link">
+                    <i class="fa-solid fa-user-gear"></i> Settings
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Dashboard Area -->
+    <section class="dashboard-main">
+        <div style="margin-bottom: 2.5rem;">
+            <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">Welcome back, {{ user.name }}!</h1>
+            <p style="color: var(--text-secondary);">Here is a summary of your emotional mapping metrics</p>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="metrics-row">
+            <div class="glass-container metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-scan"></i></div>
+                <div>
+                    <span class="metric-value">{{ total_scans }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0;">Total Scans</p>
+                </div>
+            </div>
+            
+            <div class="glass-container metric-card">
+                <div class="metric-icon" style="color: var(--accent-glow); background: rgba(255, 0, 127, 0.1);"><i class="fa-solid fa-heart-pulse"></i></div>
+                <div>
+                    <span class="metric-value">{{ favorite_emotion }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0;">Favorite Mood</p>
+                </div>
+            </div>
+
+            <div class="glass-container metric-card">
+                <div class="metric-icon" style="color: var(--secondary-glow); background: rgba(0, 240, 255, 0.1);"><i class="fa-solid fa-music"></i></div>
+                <div>
+                    <span class="metric-value">{{ favorite_songs_count }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0;">Liked Songs</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature cards grid link -->
+        <h2 style="font-weight: 700; font-size: 1.5rem; margin-bottom: 1.5rem;">Quick Operations</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            
+            <a href="{{ url_for('emotion_page') }}" class="glass-container" style="text-decoration: none; color: inherit; padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; height: 180px;">
+                <div>
+                    <i class="fa-solid fa-face-viewfinder text-gradient" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <h3 style="font-weight: 600; margin-bottom: 0.5rem;">Start Scan</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Capture a camera frame to analyze expressions</p>
+                </div>
+                <span style="color: var(--secondary-glow); font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                    Launch Cam <i class="fa-solid fa-arrow-right"></i>
+                </span>
+            </a>
+
+            <a href="{{ url_for('history') }}" class="glass-container" style="text-decoration: none; color: inherit; padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; height: 180px;">
+                <div>
+                    <i class="fa-solid fa-folder-open" style="color: var(--accent-glow); font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <h3 style="font-weight: 600; margin-bottom: 0.5rem;">Scan Logs</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Review all past predictions and dates</p>
+                </div>
+                <span style="color: var(--secondary-glow); font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                    View Logs <i class="fa-solid fa-arrow-right"></i>
+                </span>
+            </a>
+
+            <a href="{{ url_for('analytics') }}" class="glass-container" style="text-decoration: none; color: inherit; padding: 2rem; display: flex; flex-direction: column; justify-content: space-between; height: 180px;">
+                <div>
+                    <i class="fa-solid fa-chart-simple" style="color: var(--success); font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <h3 style="font-weight: 600; margin-bottom: 0.5rem;">Analytics</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Check weekly curves and mood patterns</p>
+                </div>
+                <span style="color: var(--secondary-glow); font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+                    View Charts <i class="fa-solid fa-arrow-right"></i>
+                </span>
+            </a>
+
+        </div>
+    </section>
+</div>
+{% endblock %}

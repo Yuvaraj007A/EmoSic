@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - EmoSic{% endblock %}
+
+{% block styles %}
+<style>
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    @media (max-width: 900px) {
+        .analytics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .chart-container {
+        position: relative;
+        width: 100%;
+        height: 280px;
+        margin-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper" style="padding-bottom: 8rem;">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('emotion_page') }}" class="sidebar-link">
+                    <i class="fa-solid fa-camera"></i> Detect Emotion
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('history') }}" class="sidebar-link">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Scan History
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('analytics') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-chart-pie"></i> Analytics
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('profile') }}" class="sidebar-link">
+                    <i class="fa-solid fa-user-gear"></i> Settings
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Analytics Console -->
+    <section class="dashboard-main" style="display: flex; flex-direction: column; gap: 2rem;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">Analytics Dashboard</h1>
+            <p style="color: var(--text-secondary);">Visualize your historical emotion trends and scanning behaviors</p>
+        </div>
+
+        <!-- Metrics Row -->
+        <div class="metrics-row">
+            <div class="glass-container metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-chart-bar"></i></div>
+                <div>
+                    <span class="metric-value">{{ total_scans }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0;">Total Detections</p>
+                </div>
+            </div>
+            
+            <div class="glass-container metric-card">
+                <div class="metric-icon" style="color: var(--accent-glow); background: rgba(255, 0, 127, 0.1);"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                <div>
+                    <span class="metric-value">{{ most_common }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0;">Dominant Mood</p>
+                </div>
+            </div>
+
+            <div class="glass-container metric-card">
+                <div class="metric-icon" style="color: var(--secondary-glow); background: rgba(0, 240, 255, 0.1);"><i class="fa-solid fa-hashtag"></i></div>
+                <div>
+                    <span class="metric-value">{{ most_common_count }}</span>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0;">Dominant Mood Scans</p>
+                </div>
+            </div>
+        </div>
+
+        {% if total_scans == 0 %}
+        <!-- Empty State -->
+        <div class="glass-container" style="text-align: center; padding: 5rem; color: var(--text-secondary);">
+            <i class="fa-solid fa-chart-pie" style="font-size: 4rem; color: var(--border-glass); margin-bottom: 1.5rem; display: block;"></i>
+            <p style="font-size: 1.1rem; font-weight: 500;">No charts to display</p>
+            <p style="font-size: 0.9rem; margin-top: 0.3rem;">Statistics will load dynamically once your webcam records facial expression detections.</p>
+        </div>
+        {% else %}
+        <!-- Charts Grid -->
+        <div class="analytics-grid">
+            <!-- Emotion Distribution (Pie/Doughnut) -->
+            <div class="glass-container">
+                <h3 style="font-weight: 700;"><i class="fa-solid fa-circle-dot text-gradient"></i> Mood Distribution</h3>
+                <p style="color: var(--text-secondary); font-size: 0.8rem;">Relative volume of detected emotion categories</p>
+                <div class="chart-container">
+                    <canvas id="emotionPieChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Weekly Activity (Line) -->
+            <div class="glass-container">
+                <h3 style="font-weight: 700;"><i class="fa-solid fa-wave-square text-gradient"></i> Scan Activity</h3>
+                <p style="color: var(--text-secondary); font-size: 0.8rem;">Daily frequency of scans over the past week</p>
+                <div class="chart-container">
+                    <canvas id="weeklyLineChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Emotional Density Mapping (Radar) -->
+            <div class="glass-container" style="grid-column: span 2;">
+                <h3 style="font-weight: 700;"><i class="fa-solid fa-compass-drafting text-gradient"></i> Emotion Density Mapping</h3>
+                <p style="color: var(--text-secondary); font-size: 0.8rem;">Multidimensional vector profiles of your emotional states</p>
+                <div class="chart-container" style="height: 320px;">
+                    <canvas id="emotionRadarChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if total_scans > 0 %}
+<script>
+    // Load dynamic parameters from Flask backend context
+    const labels = {{ labels | tojson }};
+    const weeklyTrends = {{ weekly_trends | tojson }};
+    const emotionCounts = {{ emotion_counts | tojson }};
+
+    const emotions = Object.keys(emotionCounts);
+    const counts = Object.values(emotionCounts);
+    
+    // Style settings matching EmoSic glassmorphism layout
+    const colors = {
+        happy: '#00e676',      // green
+        sad: '#00f0ff',        // cyan
+        neutral: '#9499b3',    // slate
+        angry: '#ff1744',      // red
+        disgust: '#ffb300',    // gold/orange
+        scared: '#8a2be2',     // purple
+        surprised: '#ff007f'   // pink
+    };
+
+    const backgroundColors = emotions.map(e => colors[e.toLowerCase()] || '#ffffff');
+    const borderColors = backgroundColors.map(c => c + '33');
+
+    // 1. Doughnut Chart Configuration
+    const ctxPie = document.getElementById('emotionPieChart').getContext('2d');
+    new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: emotions.map(e => e.toUpperCase()),
+            datasets: [{
+                data: counts,
+                backgroundColor: backgroundColors,
+                borderColor: 'rgba(255,255,255,0.05)',
+                borderWidth: 2,
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#f5f6f9',
+                        font: { family: 'Outfit', size: 12 }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Line Chart Configuration
+    const ctxLine = document.getElementById('weeklyLineChart').getContext('2d');
+    new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Detections',
+                data: weeklyTrends,
+                borderColor: '#00f0ff',
+                backgroundColor: 'rgba(0, 240, 255, 0.05)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#8a2be2',
+                pointBorderColor: '#00f0ff',
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { color: '#8f96b3', stepSize: 1 }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#8f96b3' }
+                }
+            }
+        }
+    });
+
+    // 3. Radar Chart Configuration
+    const ctxRadar = document.getElementById('emotionRadarChart').getContext('2d');
+    new Chart(ctxRadar, {
+        type: 'radar',
+        data: {
+            labels: emotions.map(e => e.toUpperCase()),
+            datasets: [{
+                label: 'Mood Density Profile',
+                data: counts,
+                backgroundColor: 'rgba(138, 43, 226, 0.15)',
+                borderColor: '#8a2be2',
+                borderWidth: 2,
+                pointBackgroundColor: '#00f0ff',
+                pointBorderColor: '#8a2be2',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255,255,255,0.08)' },
+                    grid: { color: 'rgba(255,255,255,0.08)' },
+                    pointLabels: {
+                        color: '#8f96b3',
+                        font: { family: 'Outfit', size: 11 }
+                    },
+                    ticks: { display: false }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

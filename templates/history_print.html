@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Emotion Scan Report - EmoSic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            background: #fff;
+            padding: 2rem;
+            margin: 0;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+        .header p {
+            margin: 0.5rem 0 0 0;
+            color: #666;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #888;
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>EmoSic AI Emotion Scan Report</h1>
+        <p>Generated on {{ datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Index</th>
+                <th>Timestamp (UTC)</th>
+                <th>Emotion Classified</th>
+                <th>Confidence Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in detections %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ d.timestamp.strftime('%Y-%m-%d %H:%M:%S') if d.timestamp else 'N/A' }}</td>
+                <td style="text-transform: capitalize; font-weight: bold;">{{ d.emotion }}</td>
+                <td>{{ (d.confidence * 100) | round(1) }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>This report compiles your emotion scanning logs inside the EmoSic AI Recommendation portal.</p>
+    </div>
+
+    <script>
+        // Trigger browser print interface once fully rendered
+        window.onload = function() {
+            window.print();
+        };
+    </script>
+</body>
+</html>

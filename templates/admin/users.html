@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Admin Portal{% endblock %}
+
+{% block styles %}
+<style>
+    /* CSS Modal Overlay */
+    .edit-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(8, 9, 13, 0.85);
+        backdrop-filter: blur(10px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .edit-modal.active {
+        display: flex;
+        opacity: 1;
+    }
+    
+    .modal-content {
+        width: 100%;
+        max-width: 450px;
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .edit-modal.active .modal-content {
+        transform: scale(1);
+    }
+    
+    .avatar-thum {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border-glass);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link">
+                    <i class="fa-solid fa-gauge"></i> Admin Home
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_users') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-users"></i> Manage Users
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_songs') }}" class="sidebar-link">
+                    <i class="fa-solid fa-music"></i> Manage Songs
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_detections') }}" class="sidebar-link">
+                    <i class="fa-solid fa-list-check"></i> System Logs
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main user configuration view -->
+    <section class="dashboard-main" style="display: flex; flex-direction: column; gap: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">Manage Users</h1>
+                <p style="color: var(--text-secondary);">Search user directories, update status fields, or change operational roles</p>
+            </div>
+            
+            <!-- Search field -->
+            <form action="{{ url_for('admin_users') }}" method="GET" style="display: flex; gap: 0.5rem; max-width: 300px; width: 100%;">
+                <input type="text" name="search" class="form-control" placeholder="Search name/username..." value="{{ search_query }}" style="padding: 0.6rem 1.2rem;">
+                <button type="submit" class="btn-primary" style="padding: 0.6rem 1.2rem;"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
+        </div>
+
+        <!-- Users Table -->
+        <div class="glass-container" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <img class="avatar-thum" src="{{ url_for('static', filename='uploads/' + user.profile_picture) if user.profile_picture != 'default_avatar.png' else url_for('static', filename='images/default_avatar.png') }}" alt="PFP" onerror="this.src='/static/images/default_avatar.png'">
+                                    <div>
+                                        <span style="font-weight: 600; display: block;">{{ user.name }}</span>
+                                        <span style="color: var(--text-secondary); font-size: 0.8rem;">@{{ user.username }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="badge {% if user.role == 'admin' %}badge-admin{% else %}badge-user{% endif %}">
+                                    {{ user.role | capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if user.status == 'active' %}badge-active{% else %}badge-suspended{% endif %}">
+                                    {{ user.status | capitalize }}
+                                </span>
+                            </td>
+                            <td style="font-size: 0.9rem; color: var(--text-secondary);">
+                                {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.8rem; justify-content: flex-end; align-items: center;">
+                                    <!-- Edit User Details -->
+                                    <button class="action-btn" title="Edit User" onclick="openEditModal('{{ user._id }}', '{{ user.name }}', '{{ user.role }}', '{{ user.status }}')">
+                                        <i class="fa-solid fa-user-pen"></i>
+                                    </button>
+                                    
+                                    <!-- Toggle Suspension -->
+                                    <form action="{{ url_for('admin_toggle_status', user_id=user._id) }}" method="POST" style="display: inline;">
+                                        {% if user.status == 'active' %}
+                                        <button type="submit" class="action-btn" style="color: var(--warning);" title="Suspend User" {% if session.user_id == user._id | string %}disabled{% endif %}>
+                                            <i class="fa-solid fa-user-slash"></i>
+                                        </button>
+                                        {% else %}
+                                        <button type="submit" class="action-btn" style="color: var(--success);" title="Activate User">
+                                            <i class="fa-solid fa-user-check"></i>
+                                        </button>
+                                        {% endif %}
+                                    </form>
+
+                                    <!-- Delete User Account -->
+                                    <form action="{{ url_for('admin_delete_user', user_id=user._id) }}" method="POST" style="display: inline;" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete this user account and all of their scan logs? This cannot be undone.');">
+                                        <button type="submit" class="action-btn" style="color: var(--danger);" title="Delete User" {% if session.user_id == user._id | string %}disabled{% endif %}>
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Edit User Modal -->
+<div class="edit-modal" id="edit-user-modal">
+    <div class="glass-container modal-content">
+        <h3 style="font-weight: 700; margin-bottom: 1.5rem;"><i class="fa-solid fa-user-gear text-gradient"></i> Edit User Profile</h3>
+        <form id="edit-user-form" action="" method="POST">
+            <div class="form-group">
+                <label for="modal-user-name" class="form-label">Full Name</label>
+                <input type="text" id="modal-user-name" name="name" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-user-role" class="form-label">System Role</label>
+                <select id="modal-user-role" name="role" class="form-control">
+                    <option value="user">User</option>
+                    <option value="admin">Administrator</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="modal-user-status" class="form-label">Account Status</label>
+                <select id="modal-user-status" name="status" class="form-control">
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.8rem;">
+                <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openEditModal(userId, name, role, status) {
+        const modal = document.getElementById('edit-user-modal');
+        const form = document.getElementById('edit-user-form');
+        
+        // Bind attributes
+        document.getElementById('modal-user-name').value = name;
+        document.getElementById('modal-user-role').value = role;
+        document.getElementById('modal-user-status').value = status;
+        
+        form.action = `/admin/users/edit/${userId}`;
+        
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    }
+    
+    function closeEditModal() {
+        const modal = document.getElementById('edit-user-modal');
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+</script>
+{% endblock %}

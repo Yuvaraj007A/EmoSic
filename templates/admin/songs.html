@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Songs - Admin Portal{% endblock %}
+
+{% block styles %}
+<style>
+    /* CSS Modal Overlay */
+    .edit-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(8, 9, 13, 0.85);
+        backdrop-filter: blur(10px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .edit-modal.active {
+        display: flex;
+        opacity: 1;
+    }
+    
+    .modal-content {
+        width: 100%;
+        max-width: 500px;
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .edit-modal.active .modal-content {
+        transform: scale(1);
+    }
+    
+    .song-thum {
+        width: 45px;
+        height: 45px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--border-glass);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link">
+                    <i class="fa-solid fa-gauge"></i> Admin Home
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_users') }}" class="sidebar-link">
+                    <i class="fa-solid fa-users"></i> Manage Users
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_songs') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-music"></i> Manage Songs
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_detections') }}" class="sidebar-link">
+                    <i class="fa-solid fa-list-check"></i> System Logs
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Song Console -->
+    <section class="dashboard-main" style="display: flex; flex-direction: column; gap: 2rem; padding-bottom: 8rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">Manage Songs</h1>
+                <p style="color: var(--text-secondary);">Populate, modify, or delete recommended songs for each target emotion state</p>
+            </div>
+            
+            <button class="btn-primary" onclick="openAddModal()"><i class="fa-solid fa-plus"></i> Add New Song</button>
+        </div>
+
+        <!-- Songs Grid Table -->
+        <div class="glass-container" style="padding: 0;">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Track details</th>
+                            <th>Emotion Tag</th>
+                            <th>Audio file</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for song in songs %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <img class="song-thum" src="{{ song.cover_image }}" alt="Cover" onerror="this.src='/static/images/default_avatar.png'">
+                                    <div>
+                                        <span style="font-weight: 600; display: block;">{{ song.title }}</span>
+                                        <span style="color: var(--text-secondary); font-size: 0.8rem;">By {{ song.artist }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-user" style="text-transform: capitalize; padding: 0.4rem 0.9rem;">
+                                    {{ song.emotion }}
+                                </span>
+                            </td>
+                            <td style="font-size: 0.85rem; color: var(--text-secondary); font-family: monospace;">
+                                {{ song.audio_url.replace('/static/songs/', '') }}
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.8rem; justify-content: flex-end; align-items: center;">
+                                    <!-- Edit details -->
+                                    <button class="action-btn" title="Edit Song" onclick="openEditModal('{{ song._id }}', '{{ song.title }}', '{{ song.artist }}', '{{ song.emotion }}')">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    
+                                    <!-- Delete song -->
+                                    <form action="{{ url_for('admin_delete_song', song_id=song._id) }}" method="POST" style="display: inline;" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete this song and purge it from all user favorites?');">
+                                        <button type="submit" class="action-btn" style="color: var(--danger);" title="Delete Song">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Add Song Modal -->
+<div class="edit-modal" id="add-song-modal">
+    <div class="glass-container modal-content">
+        <h3 style="font-weight: 700; margin-bottom: 1.5rem;"><i class="fa-solid fa-file-audio text-gradient"></i> Add Recommended Track</h3>
+        <form action="{{ url_for('admin_add_song') }}" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="add-title" class="form-label">Song Title</label>
+                <input type="text" id="add-title" name="title" class="form-control" placeholder="Summer Groove" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="add-artist" class="form-label">Artist Name</label>
+                <input type="text" id="add-artist" name="artist" class="form-control" placeholder="DJ Beats" required>
+            </div>
+
+            <div class="form-group">
+                <label for="add-emotion" class="form-label">Target Emotion Category</label>
+                <select id="add-emotion" name="emotion" class="form-control" required>
+                    {% for em in emotions %}
+                    <option value="{{ em }}">{{ em | capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="add-audio" class="form-label">Audio File (.mp3, .wav, .ogg)</label>
+                <input type="file" id="add-audio" name="audio" class="form-control" style="padding: 0.5rem;" required>
+            </div>
+
+            <div class="form-group">
+                <label for="add-cover" class="form-label">Cover Image (.png, .jpg, .jpeg)</label>
+                <input type="file" id="add-cover" name="cover" class="form-control" style="padding: 0.5rem;" required>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.8rem;">
+                <button type="button" class="btn-secondary" onclick="closeAddModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Save Track</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Song Modal -->
+<div class="edit-modal" id="edit-song-modal">
+    <div class="glass-container modal-content">
+        <h3 style="font-weight: 700; margin-bottom: 1.5rem;"><i class="fa-solid fa-sliders text-gradient"></i> Edit Recommended Track</h3>
+        <form id="edit-song-form" action="" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="edit-title" class="form-label">Song Title</label>
+                <input type="text" id="edit-title" name="title" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit-artist" class="form-label">Artist Name</label>
+                <input type="text" id="edit-artist" name="artist" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-emotion" class="form-label">Target Emotion Category</label>
+                <select id="edit-emotion" name="emotion" class="form-control" required>
+                    {% for em in emotions %}
+                    <option value="{{ em }}">{{ em | capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="edit-audio" class="form-label">Replace Audio (Optional)</label>
+                <input type="file" id="edit-audio" name="audio" class="form-control" style="padding: 0.5rem;">
+            </div>
+
+            <div class="form-group">
+                <label for="edit-cover" class="form-label">Replace Cover Image (Optional)</label>
+                <input type="file" id="edit-cover" name="cover" class="form-control" style="padding: 0.5rem;">
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.8rem;">
+                <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add Modal handlers
+    function openAddModal() {
+        const modal = document.getElementById('add-song-modal');
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    }
+    
+    function closeAddModal() {
+        const modal = document.getElementById('add-song-modal');
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+
+    // Edit Modal handlers
+    function openEditModal(songId, title, artist, emotion) {
+        const modal = document.getElementById('edit-song-modal');
+        const form = document.getElementById('edit-song-form');
+        
+        // Bind attributes
+        document.getElementById('edit-title').value = title;
+        document.getElementById('edit-artist').value = artist;
+        document.getElementById('edit-emotion').value = emotion;
+        
+        form.action = `/admin/songs/edit/${songId}`;
+        
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    }
+    
+    function closeEditModal() {
+        const modal = document.getElementById('edit-song-modal');
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+</script>
+{% endblock %}

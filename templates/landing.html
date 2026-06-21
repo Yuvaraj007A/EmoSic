@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}EmoSic - AI Emotion-Based Music Recommendation{% endblock %}
+
+{% block styles %}
+<style>
+    /* CSS animated face-scanning hub */
+    .scanner-hub {
+        width: 320px;
+        height: 320px;
+        position: relative;
+        border-radius: 50%;
+        background: rgba(138, 43, 226, 0.05);
+        border: 2px solid rgba(138, 43, 226, 0.2);
+        box-shadow: 0 0 50px rgba(138, 43, 226, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .scanner-circle {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px dashed var(--secondary-glow);
+        width: 80%;
+        height: 80%;
+        animation: rotateClockwise 20s infinite linear;
+    }
+    
+    .scanner-circle-2 {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid var(--primary-glow);
+        border-color: var(--primary-glow) transparent transparent transparent;
+        width: 90%;
+        height: 90%;
+        animation: rotateCounter 8s infinite linear;
+    }
+    
+    .scanner-face-outline {
+        font-size: 8rem;
+        color: rgba(255, 255, 255, 0.1);
+        text-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        animation: facePulse 2s infinite alternate;
+    }
+    
+    .scanner-laser {
+        position: absolute;
+        left: 5%;
+        width: 90%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, var(--secondary-glow), transparent);
+        box-shadow: 0 0 15px var(--secondary-glow);
+        animation: scanMotion 4s infinite ease-in-out;
+        z-index: 5;
+    }
+    
+    @keyframes rotateClockwise {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    @keyframes rotateCounter {
+        from { transform: rotate(360deg); }
+        to { transform: rotate(0deg); }
+    }
+    
+    @keyframes facePulse {
+        from { color: rgba(255, 255, 255, 0.1); transform: scale(1); }
+        to { color: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
+    }
+    
+    @keyframes scanMotion {
+        0%, 100% { top: 10%; }
+        50% { top: 90%; }
+    }
+
+    /* Floating Particles Background */
+    .particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: -1;
+        overflow: hidden;
+    }
+    
+    .bubble {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        animation: floatUp 15s infinite linear;
+        bottom: -50px;
+    }
+    
+    @keyframes floatUp {
+        0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+        10% { opacity: 0.3; }
+        90% { opacity: 0.3; }
+        100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
+    }
+    
+    .section-title {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-top: 5rem;
+        margin-bottom: 3rem;
+        font-weight: 700;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <!-- Floating Particles Background -->
+    <div class="particles" id="particles-container"></div>
+
+    <!-- Hero Section -->
+    <header class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title text-glow">Soundtrack Your <br><span class="text-gradient">Emotions</span></h1>
+            <p class="hero-subtitle">
+                EmoSic uses state-of-the-art AI to detect your current mood through your webcam and instantly curates a personalized music playlist matching your exact feelings.
+            </p>
+            <div style="display: flex; gap: 1.5rem;">
+                <a href="{{ url_for('register') }}" class="btn-primary"><i class="fa-solid fa-rocket"></i> Launch Scanner</a>
+                <a href="#about" class="btn-secondary">Learn More</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-glow-sphere"></div>
+            <div class="scanner-hub">
+                <div class="scanner-circle"></div>
+                <div class="scanner-circle-2"></div>
+                <div class="scanner-laser"></div>
+                <i class="fa-solid fa-face-smile scanner-face-outline"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" style="background: rgba(18, 22, 33, 0.2); border-y: 1px solid var(--border-glass);">
+        <h2 class="section-title text-gradient">System Features</h2>
+        <div class="features-grid">
+            <div class="glass-container feature-card">
+                <i class="fa-solid fa-camera feature-icon"></i>
+                <h3>Webcam Scan</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">
+                    Analyze micro-expressions securely within your browser using OpenCV's fast Haar Cascades.
+                </p>
+            </div>
+            <div class="glass-container feature-card">
+                <i class="fa-solid fa-brain feature-icon"></i>
+                <h3>Deep Neural Model</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">
+                    Powered by a lightweight XCEPTION neural network model mapping inputs to 7 discrete emotions.
+                </p>
+            </div>
+            <div class="glass-container feature-card">
+                <i class="fa-solid fa-music feature-icon"></i>
+                <h3>Dynamic Playlists</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">
+                    Instant transitions with a fully functional audio player supporting likes, downloads, and favorites.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="hero" style="padding: 6rem 5%;">
+        <div class="hero-image">
+            <div class="glass-container" style="padding: 2rem; border-radius: 20px; box-shadow: var(--shadow-glow);">
+                <i class="fa-solid fa-sliders text-gradient" style="font-size: 5rem; margin-bottom: 1.5rem; display: block; text-align: center;"></i>
+                <h4 style="text-align: center;">Real-Time Probability Bars</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; margin-top: 0.5rem;">
+                    View live percentages for Happy, Sad, Neutral, Angry, Disgust, Scared, and Surprised states.
+                </p>
+            </div>
+        </div>
+        <div class="hero-content">
+            <h2 class="text-gradient" style="font-size: 2.2rem; font-weight: 700; margin-bottom: 1.5rem;">How It Works</h2>
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div style="display: flex; gap: 1.2rem; align-items: flex-start;">
+                    <i class="fa-solid fa-1" style="color: var(--secondary-glow); font-size: 1.5rem; font-weight: 800;"></i>
+                    <div>
+                        <h5>Allow Webcam Stream</h5>
+                        <p style="color: var(--text-secondary);">Unlock the video portal to feed visual arrays directly into the application.</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1.2rem; align-items: flex-start;">
+                    <i class="fa-solid fa-2" style="color: var(--secondary-glow); font-size: 1.5rem; font-weight: 800;"></i>
+                    <div>
+                        <h5>AI Inference Engine Runs</h5>
+                        <p style="color: var(--text-secondary);">The CNN calculates expression weights and returns your primary mood state with high precision.</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1.2rem; align-items: flex-start;">
+                    <i class="fa-solid fa-3" style="color: var(--secondary-glow); font-size: 1.5rem; font-weight: 800;"></i>
+                    <div>
+                        <h5>Play Matching Melodies</h5>
+                        <p style="color: var(--text-secondary);">Enjoy music curated for your exact mood. Add songs to favorites or check your historical scan statistics.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="padding: 4rem 5%; text-align: center; border-top: 1px solid var(--border-glass); background: rgba(18,22,33,0.3); color: var(--text-secondary); font-size: 0.9rem;">
+        <p>&copy; 2026 EmoSic AI Music Portal. All rights reserved.</p>
+        <div style="margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem;">
+            <a href="#" style="color: var(--text-secondary); text-decoration: none;"><i class="fa-brands fa-github"></i> GitHub</a>
+            <a href="#" style="color: var(--text-secondary); text-decoration: none;"><i class="fa-solid fa-shield-halved"></i> Privacy Policy</a>
+            <a href="#" style="color: var(--text-secondary); text-decoration: none;"><i class="fa-solid fa-envelope"></i> Contact Us</a>
+        </div>
+    </footer>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Create random background floating particles
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('particles-container');
+        const particleCount = 20;
+        
+        for (let i = 0; i < particleCount; i++) {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            
+            // Random parameters
+            const size = Math.random() * 40 + 10;
+            const left = Math.random() * 100;
+            const delay = Math.random() * 10;
+            const duration = Math.random() * 15 + 10;
+            
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${left}%`;
+            bubble.style.animationDelay = `${delay}s`;
+            bubble.style.animationDuration = `${duration}s`;
+            
+            container.appendChild(bubble);
+        }
+    });
+</script>
+{% endblock %}

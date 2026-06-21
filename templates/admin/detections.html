@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}System Audit Logs - Admin Portal{% endblock %}
+
+{% block styles %}
+<style>
+    .crop-thumbnail {
+        width: 45px;
+        height: 45px;
+        border-radius: 8px;
+        object-fit: cover;
+        border: 1px solid var(--border-glass);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar glass-container" style="padding: 2rem 1.5rem;">
+        <ul class="sidebar-menu">
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link">
+                    <i class="fa-solid fa-gauge"></i> Admin Home
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_users') }}" class="sidebar-link">
+                    <i class="fa-solid fa-users"></i> Manage Users
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_songs') }}" class="sidebar-link">
+                    <i class="fa-solid fa-music"></i> Manage Songs
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a href="{{ url_for('admin_detections') }}" class="sidebar-link active">
+                    <i class="fa-solid fa-list-check"></i> System Logs
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Logs Panel -->
+    <section class="dashboard-main" style="display: flex; flex-direction: column; gap: 2rem; padding-bottom: 8rem;">
+        <div>
+            <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800;">System Audit Logs</h1>
+            <p style="color: var(--text-secondary);">Audit site-wide expressions classification logs performed by platform users</p>
+        </div>
+
+        <!-- Filters Box -->
+        <div class="glass-container" style="padding: 1.5rem;">
+            <form action="{{ url_for('admin_detections') }}" method="GET" style="display: flex; gap: 1.5rem; align-items: flex-end; flex-wrap: wrap;">
+                
+                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 180px;">
+                    <label for="user" class="form-label" style="font-size: 0.8rem;">Filter by Username/Name</label>
+                    <input type="text" id="user" name="user" class="form-control" placeholder="Search user..." value="{{ user_filter }}" style="padding: 0.5rem 1rem;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 180px;">
+                    <label for="emotion" class="form-label" style="font-size: 0.8rem;">Filter by Emotion Category</label>
+                    <select id="emotion" name="emotion" class="form-control" style="padding: 0.5rem 1rem;">
+                        <option value="">All Emotions</option>
+                        {% for em in emotions %}
+                        <option value="{{ em }}" {% if emotion_filter == em %}selected{% endif %}>{{ em | capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 0.8rem;">
+                    <button type="submit" class="btn-primary" style="padding: 0.6rem 1.5rem;"><i class="fa-solid fa-filter"></i> Apply</button>
+                    <a href="{{ url_for('admin_detections') }}" class="btn-secondary" style="padding: 0.6rem 1.5rem;"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Logs Table -->
+        <div class="glass-container" style="padding: 0;">
+            {% if detections|length == 0 %}
+            <div style="text-align: center; padding: 5rem; color: var(--text-secondary);">
+                <i class="fa-solid fa-folder-open" style="font-size: 4rem; color: var(--border-glass); margin-bottom: 1.5rem; display: block;"></i>
+                <p style="font-size: 1.1rem; font-weight: 500;">No matching log records</p>
+                <p style="font-size: 0.9rem; margin-top: 0.3rem;">There are no database entries matches for current search parameters.</p>
+            </div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Crop</th>
+                            <th>User Account</th>
+                            <th>Emotion Tag</th>
+                            <th>Confidence Score</th>
+                            <th>Timestamp (UTC)</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in detections %}
+                        <tr>
+                            <td>
+                                <img class="crop-thumbnail" src="{{ d.image_path }}" alt="Crop" onerror="this.src='/static/images/default_avatar.png'">
+                            </td>
+                            <td>
+                                <span style="font-weight: 600; display: block; color: var(--text-primary);">
+                                    {{ d.username }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge badge-user" style="text-transform: capitalize; padding: 0.4rem 0.9rem;">
+                                    {{ d.emotion }}
+                                </span>
+                            </td>
+                            <td style="font-weight: 600; color: var(--secondary-glow);">
+                                {{ (d.confidence * 100) | round(1) }}%
+                            </td>
+                            <td style="font-size: 0.9rem; color: var(--text-secondary);">
+                                {{ d.timestamp.strftime('%b %d, %Y %H:%M:%S') if d.timestamp else 'N/A' }}
+                            </td>
+                            <td style="text-align: right;">
+                                <form action="{{ url_for('delete_detection', detection_id=d.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete this scan record?');">
+                                    <button type="submit" class="action-btn" style="color: var(--danger);" title="Delete Log">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}
