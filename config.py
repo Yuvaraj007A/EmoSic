@@ -19,7 +19,10 @@ class Config:
     
     # Session options
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    # Hugging Face Spaces run inside iframes, requiring SameSite=None and Secure=True to persist cookies
+    IS_HF = 'SPACE_ID' in os.environ
+    SESSION_COOKIE_SECURE = IS_HF
+    SESSION_COOKIE_SAMESITE = 'None' if IS_HF else 'Lax'
     
     # Upload parameters
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB limit
