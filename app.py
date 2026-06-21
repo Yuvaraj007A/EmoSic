@@ -281,7 +281,59 @@ def logout():
     return redirect(url_for('login'))
 
 def send_otp_email(to_email, otp):
-    # Check if SMTP configuration parameters are present
+    body_text = f"""Hello,
+
+You requested a password reset code for your EmoSic account.
+
+Your verification OTP code is:
+{otp}
+
+This code will expire in 5 minutes. If you did not request this, please ignore this email.
+
+Best regards,
+The EmoSic Team
+"""
+
+    # Method 1: Resend HTTP API (Recommended for production, since ports 587/465 are often blocked by clouds)
+    if Config.RESEND_API_KEY:
+        import urllib.request
+        import json
+        try:
+            url = "https://api.resend.com/emails"
+            headers = {
+                "Authorization": f"Bearer {Config.RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            # For Resend, default sender must match a verified domain or onboarding@resend.dev
+            sender = Config.MAIL_DEFAULT_SENDER if '@' in Config.MAIL_DEFAULT_SENDER and 'no-reply@emosic.com' not in Config.MAIL_DEFAULT_SENDER else 'onboarding@resend.dev'
+            
+            data = {
+                "from": f"EmoSic <{sender}>",
+                "to": [to_email],
+                "subject": "EmoSic - Password Reset OTP",
+                "text": body_text
+            }
+            req = urllib.request.Request(
+                url, 
+                data=json.dumps(data).encode('utf-8'), 
+                headers=headers, 
+                method='POST'
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                resp_code = response.getcode()
+                if resp_code in [200, 201, 202]:
+                    print(f"[MAIL SUCCESS] Password reset OTP sent to {to_email} via Resend HTTP API")
+                    return True
+                else:
+                    print(f"[MAIL ERROR] Resend API returned status code: {resp_code}")
+                    return False
+        except Exception as e:
+            print(f"[MAIL ERROR] Failed to send email via Resend API: {e}")
+            # Fall back to SMTP if it is configured
+            if not Config.MAIL_SERVER:
+                return False
+
+    # Method 2: Standard SMTP Fallback
     if not all([Config.MAIL_SERVER, Config.MAIL_USERNAME, Config.MAIL_PASSWORD]):
         print(f"[MAIL WARNING] Mail server credentials are not fully configured in environment variables. Falling back to console logging.")
         return False
@@ -295,20 +347,7 @@ def send_otp_email(to_email, otp):
         msg['From'] = Config.MAIL_DEFAULT_SENDER
         msg['To'] = to_email
         msg['Subject'] = "EmoSic - Password Reset OTP"
-
-        body = f"""Hello,
-
-You requested a password reset code for your EmoSic account.
-
-Your verification OTP code is:
-{otp}
-
-This code will expire in 5 minutes. If you did not request this, please ignore this email.
-
-Best regards,
-The EmoSic Team
-"""
-        msg.attach(MIMEText(body, 'plain'))
+        msg.attach(MIMEText(body_text, 'plain'))
 
         # Connect to SMTP server
         server = smtplib.SMTP(Config.MAIL_SERVER, Config.MAIL_PORT, timeout=10)
@@ -318,10 +357,10 @@ The EmoSic Team
         server.login(Config.MAIL_USERNAME, Config.MAIL_PASSWORD)
         server.send_message(msg)
         server.close()
-        print(f"[MAIL SUCCESS] Password reset OTP sent to {to_email}")
+        print(f"[MAIL SUCCESS] Password reset OTP sent to {to_email} via SMTP")
         return True
     except Exception as e:
-        print(f"[MAIL ERROR] Failed to send email to {to_email}: {e}")
+        print(f"[MAIL ERROR] Failed to send email to {to_email} via SMTP: {e}")
         return False
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -890,6 +929,7 @@ def debug_mail():
         "MAIL_USERNAME": Config.MAIL_USERNAME,
         "MAIL_PASSWORD_SET": bool(Config.MAIL_PASSWORD),
         "MAIL_DEFAULT_SENDER": Config.MAIL_DEFAULT_SENDER,
+        "RESEND_API_KEY_SET": bool(Config.RESEND_API_KEY)
     }
     
     smtp_test_result = "Not run"
@@ -907,9 +947,31 @@ def debug_mail():
     else:
         smtp_test_result = "Skipped: Missing server, username, or password credentials."
 
+    resend_test_result = "Not run"
+    if Config.RESEND_API_KEY:
+        import urllib.request
+        import urllib.error
+        try:
+            url = "https://api.resend.com/emails"
+            req = urllib.request.Request(url, method='POST')
+            try:
+                urllib.request.urlopen(req, timeout=5)
+            except urllib.error.HTTPError as he:
+                if he.code in [400, 401, 422]:
+                    resend_test_result = f"Success: Connected successfully to Resend API. (HTTP Status {he.code})"
+                else:
+                    resend_test_result = f"Failed: Resend API returned error {he.code}: {he.reason}"
+            except Exception as ex:
+                resend_test_result = f"Failed: {ex}"
+        except Exception as e:
+            resend_test_result = f"Failed: {e}"
+    else:
+        resend_test_result = "Skipped: Missing Resend API key."
+
     return jsonify({
         "config": config_status,
-        "connection_test": smtp_test_result
+        "smtp_connection_test": smtp_test_result,
+        "resend_connection_test": resend_test_result
     })
 
 @app.route('/admin/dashboard')
