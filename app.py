@@ -1269,7 +1269,8 @@ if __name__ == '__main__':
     os.makedirs(app.config['COVER_FOLDER'], exist_ok=True)
     os.makedirs(app.config['SONG_FOLDER'], exist_ok=True)
     
-    # Run
+    # Run (disabling auto-reloader on Windows to prevent WinError 10038 socket crash)
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'True') == 'True'
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    use_reloader = os.name != 'nt'
+    app.run(host='0.0.0.0', port=port, debug=debug, use_reloader=use_reloader)
