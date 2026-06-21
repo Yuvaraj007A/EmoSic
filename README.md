@@ -172,7 +172,6 @@ EmoSic is optimized to run inside Docker containers and is pre-configured to be 
 
 ### Hugging Face Space Settings:
 * **SDK**: `docker` (uses the root `Dockerfile`)
-* **Exposed Port**: `7860` (default port mapped by Hugging Face)
 
 ### Deployment Steps:
 1. **Create Space**: On Hugging Face, create a new Space, choose **Docker** as the SDK, and select **Blank**.
