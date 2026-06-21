@@ -953,7 +953,11 @@ def debug_mail():
         import urllib.error
         try:
             url = "https://api.resend.com/emails"
-            req = urllib.request.Request(url, method='POST')
+            headers = {
+                "Authorization": f"Bearer {Config.RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            req = urllib.request.Request(url, headers=headers, method='POST')
             try:
                 urllib.request.urlopen(req, timeout=5)
             except urllib.error.HTTPError as he:
