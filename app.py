@@ -952,19 +952,20 @@ def debug_mail():
         import urllib.request
         import urllib.error
         try:
-            url = "https://api.resend.com/emails"
+            url = "https://api.resend.com/domains"
             headers = {
                 "Authorization": f"Bearer {Config.RESEND_API_KEY}",
                 "Content-Type": "application/json"
             }
-            req = urllib.request.Request(url, headers=headers, method='POST')
+            req = urllib.request.Request(url, headers=headers, method='GET')
             try:
-                urllib.request.urlopen(req, timeout=5)
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    if resp.getcode() == 200:
+                        resend_test_result = "Success: Successfully connected and authenticated with Resend API."
+                    else:
+                        resend_test_result = f"Failed: Resend API returned status code {resp.getcode()}"
             except urllib.error.HTTPError as he:
-                if he.code in [400, 401, 422]:
-                    resend_test_result = f"Success: Connected successfully to Resend API. (HTTP Status {he.code})"
-                else:
-                    resend_test_result = f"Failed: Resend API returned error {he.code}: {he.reason}"
+                resend_test_result = f"Failed: Resend API returned error {he.code}: {he.reason}"
             except Exception as ex:
                 resend_test_result = f"Failed: {ex}"
         except Exception as e:
