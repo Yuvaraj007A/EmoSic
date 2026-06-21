@@ -163,3 +163,35 @@ To test the password recovery wizard without configuring an SMTP mail server:
    ==========================================
    ```
 3. Enter that 6-digit code on the verification screen to reset your password.
+
+---
+
+## 🐳 Docker & Hugging Face Spaces Deployment
+
+EmoSic is optimized to run inside Docker containers and is pre-configured to be hosted on **Hugging Face Spaces**.
+
+### Hugging Face Space Settings:
+* **SDK**: `docker` (uses the root `Dockerfile`)
+* **Exposed Port**: `7860` (default port mapped by Hugging Face)
+
+### Deployment Steps:
+1. **Create Space**: On Hugging Face, create a new Space, choose **Docker** as the SDK, and select **Blank**.
+2. **Environment Secrets**: Under the Space's **Settings** tab, add your environment secrets:
+   * `MONGO_URI`: Your MongoDB Atlas connection string (Atlas cloud is required for persistence).
+   * `SECRET_KEY`: A secure random string for signing user sessions.
+3. **Session Cookie Security**: The application dynamically handles session cookies (`SameSite=None` and `Secure=True`) when running in the Hugging Face iframe so that user logins persist correctly.
+
+---
+
+## 📦 Git Large File Storage (LFS)
+
+This project contains large binary assets (the pre-trained model `mini_XCEPTION.hdf5` and several default `.mp3` tracks). These are managed using **Git LFS** to keep the Git history small and optimized.
+
+If you are cloning this repository on a new system:
+1. Ensure Git LFS is installed.
+2. Initialize and pull LFS objects:
+   ```bash
+   git lfs install
+   git lfs pull
+   ```
+
