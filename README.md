@@ -1,4 +1,15 @@
+---
+title: EmoSic
+emoji: 🎵
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # EmoSic: Emotion-Based Music Recommendation System
+
 
 EmoSic is a production-ready web application that analyzes user facial expressions in real time using webcam capture, predicts their emotional state using an AI model (mini-XCEPTION CNN), and recommends matching music playlists. The system features a modern Dark Mode Glassmorphism layout, user security, analytics curves, and administrative dashboards.
 
