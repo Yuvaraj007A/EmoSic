@@ -304,7 +304,8 @@ The EmoSic Team
         url = "https://api.resend.com/emails"
         headers = {
             "Authorization": f"Bearer {Config.RESEND_API_KEY}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         # For Resend, default sender must match a verified domain or onboarding@resend.dev
         sender = Config.MAIL_DEFAULT_SENDER if '@' in Config.MAIL_DEFAULT_SENDER and 'no-reply@emosic.com' not in Config.MAIL_DEFAULT_SENDER else 'onboarding@resend.dev'
@@ -911,7 +912,8 @@ def debug_mail():
             url = "https://api.resend.com/domains"
             headers = {
                 "Authorization": f"Bearer {Config.RESEND_API_KEY}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
             req = urllib.request.Request(url, headers=headers, method='GET')
             try:
