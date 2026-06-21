@@ -879,6 +879,39 @@ def remove_favorite(song_id):
 
 # ----------------- ADMIN PORTAL -----------------
 
+@app.route('/admin/debug-mail')
+@login_required
+@admin_required
+def debug_mail():
+    config_status = {
+        "MAIL_SERVER": Config.MAIL_SERVER,
+        "MAIL_PORT": Config.MAIL_PORT,
+        "MAIL_USE_TLS": Config.MAIL_USE_TLS,
+        "MAIL_USERNAME": Config.MAIL_USERNAME,
+        "MAIL_PASSWORD_SET": bool(Config.MAIL_PASSWORD),
+        "MAIL_DEFAULT_SENDER": Config.MAIL_DEFAULT_SENDER,
+    }
+    
+    smtp_test_result = "Not run"
+    if Config.MAIL_SERVER and Config.MAIL_USERNAME and Config.MAIL_PASSWORD:
+        import smtplib
+        try:
+            server = smtplib.SMTP(Config.MAIL_SERVER, Config.MAIL_PORT, timeout=5)
+            if Config.MAIL_USE_TLS:
+                server.starttls()
+            server.login(Config.MAIL_USERNAME, Config.MAIL_PASSWORD)
+            server.close()
+            smtp_test_result = "Success: Successfully connected and authenticated with SMTP server."
+        except Exception as e:
+            smtp_test_result = f"Failed: {e}"
+    else:
+        smtp_test_result = "Skipped: Missing server, username, or password credentials."
+
+    return jsonify({
+        "config": config_status,
+        "connection_test": smtp_test_result
+    })
+
 @app.route('/admin/dashboard')
 @login_required
 @admin_required
