@@ -13,6 +13,9 @@ pinned: false
 
 EmoSic is a production-ready web application that analyzes user facial expressions in real time using webcam capture, predicts their emotional state using an AI model (mini-XCEPTION CNN), and recommends matching music playlists. The system features a modern Dark Mode Glassmorphism layout, user security, analytics curves, and administrative dashboards.
 
+🔗 **Live Demo**: [Hugging Face Space](https://huggingface.co/spaces/Yuvaraj007A/EmoSic)
+🌐 **Direct Link (Iframe-free)**: [https://yuvaraj007a-emosic.hf.space](https://yuvaraj007a-emosic.hf.space)
+
 ---
 
 ## 💻 Tech Stack
