@@ -150,12 +150,6 @@ python app.py
 ```
 Open your browser and navigate to `http://localhost:5000`.
 
-### 🔑 Default Administrator Credentials
-The application automatically seeds an Admin user in the database when launching the server if no admins exist:
-* **Email**: `admin@emosic.com`
-* **Password**: `admin123`
-* **Role**: Admin
-
 Standard users can sign up using the **Register** form.
 
 ### 🧪 Testing Forgot Password OTP
