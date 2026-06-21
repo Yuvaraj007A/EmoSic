@@ -922,6 +922,12 @@ def remove_favorite(song_id):
 @login_required
 @admin_required
 def debug_mail():
+    api_key = Config.RESEND_API_KEY
+    key_preview = "None"
+    if api_key:
+        # Strip trailing carriage returns or clean up key format
+        key_preview = f"{api_key[:6]}... (Length: {len(api_key)}, stripped: {api_key.strip() == api_key})"
+
     config_status = {
         "MAIL_SERVER": Config.MAIL_SERVER,
         "MAIL_PORT": Config.MAIL_PORT,
@@ -929,7 +935,8 @@ def debug_mail():
         "MAIL_USERNAME": Config.MAIL_USERNAME,
         "MAIL_PASSWORD_SET": bool(Config.MAIL_PASSWORD),
         "MAIL_DEFAULT_SENDER": Config.MAIL_DEFAULT_SENDER,
-        "RESEND_API_KEY_SET": bool(Config.RESEND_API_KEY)
+        "RESEND_API_KEY_SET": bool(Config.RESEND_API_KEY),
+        "RESEND_API_KEY_PREVIEW": key_preview
     }
     
     smtp_test_result = "Not run"
