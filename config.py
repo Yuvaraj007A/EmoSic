@@ -29,6 +29,14 @@ class Config:
     ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     ALLOWED_AUDIO_EXTENSIONS = {'mp3', 'wav', 'ogg'}
 
+    # Email Configuration
+    MAIL_SERVER = os.environ.get('MAIL_SERVER')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'no-reply@emosic.com')
+
     @staticmethod
     def allowed_file(filename, allowed_extensions):
         return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
