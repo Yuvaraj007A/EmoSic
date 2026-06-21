@@ -280,6 +280,50 @@ def logout():
     flash("You have been successfully logged out.", "success")
     return redirect(url_for('login'))
 
+def send_otp_email(to_email, otp):
+    # Check if SMTP configuration parameters are present
+    if not all([Config.MAIL_SERVER, Config.MAIL_USERNAME, Config.MAIL_PASSWORD]):
+        print(f"[MAIL WARNING] Mail server credentials are not fully configured in environment variables. Falling back to console logging.")
+        return False
+
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = Config.MAIL_DEFAULT_SENDER
+        msg['To'] = to_email
+        msg['Subject'] = "EmoSic - Password Reset OTP"
+
+        body = f"""Hello,
+
+You requested a password reset code for your EmoSic account.
+
+Your verification OTP code is:
+{otp}
+
+This code will expire in 5 minutes. If you did not request this, please ignore this email.
+
+Best regards,
+The EmoSic Team
+"""
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Connect to SMTP server
+        server = smtplib.SMTP(Config.MAIL_SERVER, Config.MAIL_PORT, timeout=10)
+        if Config.MAIL_USE_TLS:
+            server.starttls()
+        
+        server.login(Config.MAIL_USERNAME, Config.MAIL_PASSWORD)
+        server.send_message(msg)
+        server.close()
+        print(f"[MAIL SUCCESS] Password reset OTP sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"[MAIL ERROR] Failed to send email to {to_email}: {e}")
+        return False
+
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if 'user_id' in session:
@@ -307,7 +351,13 @@ def forgot_password():
             print(f"[OTP CODE] Verification OTP: {otp}")
             print("==========================================")
             
-            flash("An OTP verification code has been printed to the system server logs/console. Enter it below.", "success")
+            # Attempt to send email
+            mail_sent = send_otp_email(email, otp)
+            if mail_sent:
+                flash("An OTP verification code has been sent to your email. Enter it below.", "success")
+            else:
+                flash("An OTP verification code has been printed to the system server logs/console. Enter it below.", "info")
+                
             return render_template('forgot_password.html', step='verify_otp')
             
         elif action == 'verify_otp':
