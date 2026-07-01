@@ -738,6 +738,8 @@ def history():
     
     # Filters
     time_filter = request.args.get('filter', 'all')
+    emotion_filter = request.args.get('emotion', 'all')
+    
     now = datetime.datetime.utcnow()
     query = {"user_id": user_id}
     
@@ -761,8 +763,17 @@ def history():
             except ValueError:
                 pass
                 
+    if emotion_filter and emotion_filter != 'all':
+        query["emotion"] = emotion_filter
+        
     detections = list(db.emotions.find(query).sort("timestamp", -1))
-    return render_template('history.html', detections=detections, active_filter=time_filter)
+    return render_template(
+        'history.html', 
+        detections=detections, 
+        active_filter=time_filter, 
+        active_emotion=emotion_filter,
+        emotions_list=EMOTIONS
+    )
 
 @app.route('/history/delete/<detection_id>', methods=['POST'])
 @login_required
@@ -792,7 +803,38 @@ def delete_detection(detection_id):
 @login_required
 def export_history(export_format):
     user_id = ObjectId(session['user_id'])
-    detections = list(db.emotions.find({"user_id": user_id}).sort("timestamp", -1))
+    
+    # Filters
+    time_filter = request.args.get('filter', 'all')
+    emotion_filter = request.args.get('emotion', 'all')
+    
+    now = datetime.datetime.utcnow()
+    query = {"user_id": user_id}
+    
+    if time_filter == 'today':
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        query["timestamp"] = {"$gte": start}
+    elif time_filter == 'week':
+        start = now - datetime.timedelta(days=7)
+        query["timestamp"] = {"$gte": start}
+    elif time_filter == 'month':
+        start = now - datetime.timedelta(days=30)
+        query["timestamp"] = {"$gte": start}
+    elif time_filter == 'custom':
+        start_str = request.args.get('start_date')
+        end_str = request.args.get('end_date')
+        if start_str and end_str:
+            try:
+                start = datetime.datetime.strptime(start_str, "%Y-%m-%d")
+                end = datetime.datetime.strptime(end_str, "%Y-%m-%d") + datetime.timedelta(days=1)
+                query["timestamp"] = {"$gte": start, "$lte": end}
+            except ValueError:
+                pass
+                
+    if emotion_filter and emotion_filter != 'all':
+        query["emotion"] = emotion_filter
+        
+    detections = list(db.emotions.find(query).sort("timestamp", -1))
     
     if export_format == 'csv':
         import csv

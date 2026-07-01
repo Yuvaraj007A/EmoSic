@@ -82,29 +82,58 @@
             
             <!-- Export Buttons -->
             <div style="display: flex; gap: 0.8rem;">
-                <a href="{{ url_for('export_history', export_format='csv') }}" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">
+                <a href="{{ url_for('export_history', export_format='csv', filter=active_filter, emotion=active_emotion, start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', '')) }}" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">
                     <i class="fa-solid fa-file-csv"></i> Export CSV
                 </a>
-                <a href="{{ url_for('export_history', export_format='pdf') }}" target="_blank" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">
+                <a href="{{ url_for('export_history', export_format='pdf', filter=active_filter, emotion=active_emotion, start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', '')) }}" target="_blank" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">
                     <i class="fa-solid fa-file-pdf"></i> Export PDF
                 </a>
             </div>
         </div>
 
         <!-- Filters Row -->
-        <div class="glass-container" style="padding: 1.5rem; margin-bottom: 2rem;">
-            <div class="filter-btn-group">
-                <a href="{{ url_for('history', filter='all') }}" class="filter-btn {% if active_filter == 'all' or active_filter == '' %}active{% endif %}">All Scans</a>
-                <a href="{{ url_for('history', filter='today') }}" class="filter-btn {% if active_filter == 'today' %}active{% endif %}">Today</a>
-                <a href="{{ url_for('history', filter='week') }}" class="filter-btn {% if active_filter == 'week' %}active{% endif %}">This Week</a>
-                <a href="{{ url_for('history', filter='month') }}" class="filter-btn {% if active_filter == 'month' %}active{% endif %}">This Month</a>
-                <button onclick="toggleCustomFilter()" class="filter-btn {% if active_filter == 'custom' %}active{% endif %}">Custom Range</button>
+        <div class="glass-container" style="padding: 1.5rem; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; width: 100%;">
+                <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                    <!-- Time Filters -->
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                        <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">Time Period</label>
+                        <div class="filter-btn-group" style="margin: 0;">
+                            <a href="{{ url_for('history', filter='all', emotion=active_emotion) }}" class="filter-btn {% if active_filter == 'all' or active_filter == '' %}active{% endif %}">All Scans</a>
+                            <a href="{{ url_for('history', filter='today', emotion=active_emotion) }}" class="filter-btn {% if active_filter == 'today' %}active{% endif %}">Today</a>
+                            <a href="{{ url_for('history', filter='week', emotion=active_emotion) }}" class="filter-btn {% if active_filter == 'week' %}active{% endif %}">This Week</a>
+                            <a href="{{ url_for('history', filter='month', emotion=active_emotion) }}" class="filter-btn {% if active_filter == 'month' %}active{% endif %}">This Month</a>
+                            <button onclick="toggleCustomFilter()" class="filter-btn {% if active_filter == 'custom' %}active{% endif %}">Custom Range</button>
+                        </div>
+                    </div>
+
+                    <!-- Emotion Filter -->
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                        <label for="emotion-select" style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">Filter by Emotion</label>
+                        <select id="emotion-select" class="form-control" style="padding: 0.6rem 2.5rem 0.6rem 1.2rem; min-width: 165px; height: 42px; background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-glass); color: var(--text-primary); border-radius: var(--radius); cursor: pointer; outline: none; transition: var(--transition);" onchange="location = this.value;">
+                            <option value="{{ url_for('history', filter=active_filter, emotion='all', start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', '')) }}" {% if active_emotion == 'all' or not active_emotion %}selected{% endif %}>All Emotions</option>
+                            {% for emotion in emotions_list %}
+                            <option value="{{ url_for('history', filter=active_filter, emotion=emotion, start_date=request.args.get('start_date', ''), end_date=request.args.get('end_date', '')) }}" {% if active_emotion == emotion %}selected{% endif %}>{{ emotion|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Text Search -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem; min-width: 240px;">
+                    <label for="search-input" style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">Search Logs</label>
+                    <div style="position: relative;">
+                        <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 0.9rem;"></i>
+                        <input type="text" id="search-input" class="form-control" placeholder="Search by emotion, date..." style="padding: 0.6rem 1rem 0.6rem 2.5rem; width: 100%; height: 42px; background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-glass); color: var(--text-primary); border-radius: var(--radius); outline: none; transition: var(--transition);">
+                    </div>
+                </div>
             </div>
             
             <!-- Custom Datepicker Selector -->
-            <div id="custom-range-picker" style="display: {% if active_filter == 'custom' %}flex{% else %}none{% endif %}; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+            <div id="custom-range-picker" class="{% if active_filter == 'custom' %}custom-range-flex{% else %}custom-range-none{% endif %}" style="gap: 1rem; align-items: flex-end; flex-wrap: wrap; border-top: 1px dashed var(--border-glass); padding-top: 1rem;">
                 <form action="{{ url_for('history') }}" method="GET" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; width: 100%;">
                     <input type="hidden" name="filter" value="custom">
+                    <input type="hidden" name="emotion" value="{{ active_emotion }}">
                     <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
                         <label for="start_date" class="form-label" style="font-size: 0.8rem;">Start Date</label>
                         <input type="date" id="start_date" name="start_date" class="form-control" style="padding: 0.5rem 1rem;" value="{{ request.args.get('start_date', '') }}" required>
@@ -175,13 +204,63 @@
 
 {% block scripts %}
 <script>
-    function toggleCustomFilter() {
-        const picker = document.getElementById('custom-range-picker');
-        if (picker.style.display === 'none') {
-            picker.style.display = 'flex';
-        } else {
-            picker.style.display = 'none';
+    (function() {
+        window.toggleCustomFilter = function() {
+            const picker = document.getElementById('custom-range-picker');
+            if (picker.classList.contains('custom-range-flex')) {
+                picker.classList.remove('custom-range-flex');
+                picker.classList.add('custom-range-none');
+            } else {
+                picker.classList.remove('custom-range-none');
+                picker.classList.add('custom-range-flex');
+            }
+        };
+
+        // Real-time table search functionality
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase().trim();
+                const rows = document.querySelectorAll('table.custom-table tbody tr');
+                let visibleCount = 0;
+                
+                rows.forEach(row => {
+                    // Check text content of all columns except the delete action column
+                    const cells = Array.from(row.querySelectorAll('td:not(:last-child)'));
+                    const match = cells.some(cell => cell.textContent.toLowerCase().includes(query));
+                    if (match) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Show a helpful "No matching records" message if all rows are hidden
+                const noRecordsMsg = document.getElementById('search-no-records-msg');
+                const tableContainer = document.querySelector('.table-responsive');
+                
+                if (rows.length > 0) {
+                    if (visibleCount === 0) {
+                        if (!noRecordsMsg) {
+                            const msg = document.createElement('div');
+                            msg.id = 'search-no-records-msg';
+                            msg.style.padding = '5rem';
+                            msg.style.textAlign = 'center';
+                            msg.style.color = 'var(--text-secondary)';
+                            msg.innerHTML = '<i class="fa-solid fa-magnifying-glass" style="font-size: 4rem; margin-bottom: 1.5rem; display: block; color: var(--border-glass);"></i><p style="font-size: 1.1rem; font-weight: 500;">No matching scan logs found</p><p style="font-size: 0.9rem; margin-top: 0.3rem;">Refine your search term or select a different filter.</p>';
+                            tableContainer.style.display = 'none';
+                            tableContainer.parentNode.appendChild(msg);
+                        }
+                    } else {
+                        if (noRecordsMsg) {
+                            noRecordsMsg.remove();
+                        }
+                        tableContainer.style.display = '';
+                    }
+                }
+            });
         }
-    }
+    })();
 </script>
 {% endblock %}

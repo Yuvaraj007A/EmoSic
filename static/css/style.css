@@ -57,6 +57,7 @@ body {
 .text-gradient {
     background: linear-gradient(135deg, var(--text-primary) 30%, var(--secondary-glow) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -148,6 +149,11 @@ body {
     transition: var(--transition);
 }
 
+select.form-control option {
+    background-color: #121621;
+    color: var(--text-primary);
+}
+
 .form-control:focus {
     outline: none;
     border-color: var(--secondary-glow);
@@ -183,6 +189,7 @@ body {
 .nav-brand span {
     background: linear-gradient(135deg, var(--primary-glow) 0%, var(--secondary-glow) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -631,6 +638,7 @@ body {
 .progress-bar-slider {
     flex-grow: 1;
     -webkit-appearance: none;
+    appearance: none;
     background: rgba(255,255,255,0.1);
     height: 5px;
     border-radius: 5px;
@@ -801,4 +809,12 @@ body {
     color: var(--text-secondary);
     font-size: 0.9rem;
     height: 20px;
+}
+
+/* Custom range picker visibility helper classes */
+.custom-range-flex {
+    display: flex !important;
+}
+.custom-range-none {
+    display: none !important;
 }

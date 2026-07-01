@@ -102,7 +102,7 @@
         </div>
         {% else %}
         <!-- Charts Grid -->
-        <div class="analytics-grid">
+        <div class="analytics-grid" id="analytics-data" data-labels='{{ labels | tojson }}' data-weekly-trends='{{ weekly_trends | tojson }}' data-emotion-counts='{{ emotion_counts | tojson }}'>
             <!-- Emotion Distribution (Pie/Doughnut) -->
             <div class="glass-container">
                 <h3 style="font-weight: 700;"><i class="fa-solid fa-circle-dot text-gradient"></i> Mood Distribution</h3>
@@ -138,131 +138,134 @@
 {% block scripts %}
 {% if total_scans > 0 %}
 <script>
-    // Load dynamic parameters from Flask backend context
-    const labels = {{ labels | tojson }};
-    const weeklyTrends = {{ weekly_trends | tojson }};
-    const emotionCounts = {{ emotion_counts | tojson }};
+    (function() {
+        // Load dynamic parameters from Flask backend context via data attributes
+        const analyticsDataEl = document.getElementById('analytics-data');
+        const labels = JSON.parse(analyticsDataEl.dataset.labels);
+        const weeklyTrends = JSON.parse(analyticsDataEl.dataset.weeklyTrends);
+        const emotionCounts = JSON.parse(analyticsDataEl.dataset.emotionCounts);
 
-    const emotions = Object.keys(emotionCounts);
-    const counts = Object.values(emotionCounts);
-    
-    // Style settings matching EmoSic glassmorphism layout
-    const colors = {
-        happy: '#00e676',      // green
-        sad: '#00f0ff',        // cyan
-        neutral: '#9499b3',    // slate
-        angry: '#ff1744',      // red
-        disgust: '#ffb300',    // gold/orange
-        scared: '#8a2be2',     // purple
-        surprised: '#ff007f'   // pink
-    };
+        const emotions = Object.keys(emotionCounts);
+        const counts = Object.values(emotionCounts);
+        
+        // Style settings matching EmoSic glassmorphism layout
+        const colors = {
+            happy: '#00e676',      // green
+            sad: '#00f0ff',        // cyan
+            neutral: '#9499b3',    // slate
+            angry: '#ff1744',      // red
+            disgust: '#ffb300',    // gold/orange
+            scared: '#8a2be2',     // purple
+            surprised: '#ff007f'   // pink
+        };
 
-    const backgroundColors = emotions.map(e => colors[e.toLowerCase()] || '#ffffff');
-    const borderColors = backgroundColors.map(c => c + '33');
+        const backgroundColors = emotions.map(e => colors[e.toLowerCase()] || '#ffffff');
+        const borderColors = backgroundColors.map(c => c + '33');
 
-    // 1. Doughnut Chart Configuration
-    const ctxPie = document.getElementById('emotionPieChart').getContext('2d');
-    new Chart(ctxPie, {
-        type: 'doughnut',
-        data: {
-            labels: emotions.map(e => e.toUpperCase()),
-            datasets: [{
-                data: counts,
-                backgroundColor: backgroundColors,
-                borderColor: 'rgba(255,255,255,0.05)',
-                borderWidth: 2,
-                hoverOffset: 15
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        color: '#f5f6f9',
-                        font: { family: 'Outfit', size: 12 }
+        // 1. Doughnut Chart Configuration
+        const ctxPie = document.getElementById('emotionPieChart').getContext('2d');
+        new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: emotions.map(e => e.toUpperCase()),
+                datasets: [{
+                    data: counts,
+                    backgroundColor: backgroundColors,
+                    borderColor: 'rgba(255,255,255,0.05)',
+                    borderWidth: 2,
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#f5f6f9',
+                            font: { family: 'Outfit', size: 12 }
+                        }
                     }
                 }
             }
-        }
-    });
+        });
 
-    // 2. Line Chart Configuration
-    const ctxLine = document.getElementById('weeklyLineChart').getContext('2d');
-    new Chart(ctxLine, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Detections',
-                data: weeklyTrends,
-                borderColor: '#00f0ff',
-                backgroundColor: 'rgba(0, 240, 255, 0.05)',
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#8a2be2',
-                pointBorderColor: '#00f0ff',
-                pointHoverRadius: 7
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
+        // 2. Line Chart Configuration
+        const ctxLine = document.getElementById('weeklyLineChart').getContext('2d');
+        new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Detections',
+                    data: weeklyTrends,
+                    borderColor: '#00f0ff',
+                    backgroundColor: 'rgba(0, 240, 255, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#8a2be2',
+                    pointBorderColor: '#00f0ff',
+                    pointHoverRadius: 7
+                }]
             },
-            scales: {
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#8f96b3', stepSize: 1 }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
                 },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#8f96b3' }
-                }
-            }
-        }
-    });
-
-    // 3. Radar Chart Configuration
-    const ctxRadar = document.getElementById('emotionRadarChart').getContext('2d');
-    new Chart(ctxRadar, {
-        type: 'radar',
-        data: {
-            labels: emotions.map(e => e.toUpperCase()),
-            datasets: [{
-                label: 'Mood Density Profile',
-                data: counts,
-                backgroundColor: 'rgba(138, 43, 226, 0.15)',
-                borderColor: '#8a2be2',
-                borderWidth: 2,
-                pointBackgroundColor: '#00f0ff',
-                pointBorderColor: '#8a2be2',
-                pointRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                r: {
-                    angleLines: { color: 'rgba(255,255,255,0.08)' },
-                    grid: { color: 'rgba(255,255,255,0.08)' },
-                    pointLabels: {
-                        color: '#8f96b3',
-                        font: { family: 'Outfit', size: 11 }
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#8f96b3', stepSize: 1 }
                     },
-                    ticks: { display: false }
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#8f96b3' }
+                    }
                 }
             }
-        }
-    });
+        });
+
+        // 3. Radar Chart Configuration
+        const ctxRadar = document.getElementById('emotionRadarChart').getContext('2d');
+        new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: emotions.map(e => e.toUpperCase()),
+                datasets: [{
+                    label: 'Mood Density Profile',
+                    data: counts,
+                    backgroundColor: 'rgba(138, 43, 226, 0.15)',
+                    borderColor: '#8a2be2',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#00f0ff',
+                    pointBorderColor: '#8a2be2',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255,255,255,0.08)' },
+                        grid: { color: 'rgba(255,255,255,0.08)' },
+                        pointLabels: {
+                            color: '#8f96b3',
+                            font: { family: 'Outfit', size: 11 }
+                        },
+                        ticks: { display: false }
+                    }
+                }
+            }
+        });
+    })();
 </script>
 {% endif %}
 {% endblock %}
